@@ -16,6 +16,7 @@ class FedAvg:
         self.num_workers = num_workers
         self.average_interval = average_interval
 
+        # Distillation hyperparameters
         self.temperature =3
         self.l_max=0.5
         self.ap=300
@@ -48,9 +49,9 @@ class FedAvg:
         # Train the local private data.
         for i in range(self.average_interval):
             images, labels = dataset.next()
-            loss, _= self.distill_step(checkpoint,images, labels,0, target_model,round_id) # unlabeld dataset distillation
+            loss, _= self.distill_step(checkpoint,images, labels,0, target_model,round_id)
             lossmean(loss)
-        # Train the local public data
+        # Train the local public data ( unlabeld dataset distillation )
         for i in range(self.average_interval):
             public_images =public_dataset.next()
             _=self.distill_step2(checkpoint,public_images,0, target_model,round_id)
@@ -73,7 +74,6 @@ class FedAvg:
             student_loss = student_ce
             student_regularization_losses = checkpoint.models[student].losses
             student_total_loss = tf.add_n(student_regularization_losses + [student_loss])
-
         grads = tape.gradient(student_total_loss, checkpoint.models[student].trainable_variables)
         checkpoint.optimizers[student].apply_gradients(zip(grads, checkpoint.models[student].trainable_variables))
         return student_loss, grads
