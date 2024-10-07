@@ -1,0 +1,13 @@
+batch_size= 32
+min_lr= 0.2
+max_lr= 0.2
+num_classes= 10
+epochs= 400
+decay= {200,300}
+weight_decay= 0.0001
+average_interval = 30
+num_workers = 20
+checkpoint = 0
+active_ratio = 0.2
+alpha = 0.1
+num_strongs=20
