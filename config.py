@@ -10,4 +10,4 @@ num_workers = 20
 checkpoint = 0
 active_ratio = 0.2
 alpha = 0.1
-num_strongs=20
+num_strongs = 20

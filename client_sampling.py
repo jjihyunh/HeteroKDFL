@@ -45,9 +45,3 @@ class sampling:
             self.num_updates[client_id] += 1
             self.avg_norms[client_id] = accum / self.num_updates[client_id]
 
-    def reset (self):
-        self.local_losses = np.full((self.num_clients), np.Inf)
-        self.fixed_losses = np.full((self.num_clients), np.Inf)
-        self.local_norms = np.zeros((self.num_clients))
-        self.avg_norms = np.zeros((self.num_clients))
-        self.num_updates = np.zeros((self.num_clients))
