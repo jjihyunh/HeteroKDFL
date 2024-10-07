@@ -1,6 +1,5 @@
 batch_size= 32
-min_lr= 0.2
-max_lr= 0.2
+lr= 0.2
 num_classes= 10
 epochs= 400
 decay= {200,300}

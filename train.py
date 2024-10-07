@@ -19,8 +19,7 @@ class framework:
         self.aggregator = aggregator
         self.models = models
         self.num_epochs = kargs["num_epochs"]
-        self.min_lr = kargs["min_lr"]
-        self.max_lr = kargs["max_lr"]
+        self.lr = kargs["lr"]
         self.decay_epochs = kargs["decay_epochs"]
         self.average_interval = kargs["average_interval"]
         self.do_checkpoint = kargs["do_checkpoint"]
@@ -41,7 +40,7 @@ class framework:
             self.valid_acc = tf.keras.metrics.Accuracy()
         self.checkpoint = tf.train.Checkpoint(models = models, optimizers = self.solver.local_optimizers)
         for optimizer in self.checkpoint.optimizers:
-            optimizer.lr.assign(self.min_lr)
+            optimizer.lr.assign(self.lr)
         checkpoint_dir = "./checkpoint"
         self.checkpoint_manager = tf.train.CheckpointManager(checkpoint = self.checkpoint,
                                                               directory = checkpoint_dir,
