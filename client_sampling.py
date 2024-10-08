@@ -1,3 +1,8 @@
+'''
+Jihyun Lim <wlguslim@inha.edu>
+Inha University
+2024/10/08
+'''
 from mpi4py import MPI
 import numpy as np
 import math

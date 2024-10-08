@@ -1,3 +1,8 @@
+'''
+Jihyun Lim <wlguslim@inha.edu>
+Inha University
+2024/10/08
+'''
 import os
 import math
 import pickle
@@ -6,7 +11,6 @@ import numpy as np
 import tensorflow as tf
 from mpi4py import MPI
 from tensorflow.python.data.experimental import AUTOTUNE
-from feeders.fedml import non_iid_partition_with_dirichlet_distribution
 import tensorflow_datasets as tfds
 
 def dense_to_one_hot(labels_dense, num_classes):

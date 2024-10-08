@@ -1,3 +1,8 @@
+'''
+Jihyun Lim <wlguslim@inha.edu>
+Inha University
+2024/10/08
+'''
 import numpy as np
 import tensorflow as tf
 import config as cfg

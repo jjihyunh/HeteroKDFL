@@ -1,3 +1,8 @@
+'''
+Jihyun Lim <wlguslim@inha.edu>
+Inha University
+2024/10/08
+'''
 batch_size= 32
 lr= 0.2
 num_classes= 10
