@@ -28,11 +28,8 @@ class framework:
         self.num_clients = kargs["num_clients"]
         self.num_strongs=kargs["num_strongs"]
         self.num_local_workers = int(self.num_workers / self.size)
-        self.warmup_epochs = 0
-        self.lr_decay_factor = 10
         self.outter_rounds =1
-        self.participations = np.zeros((self.num_clients))
-        self.total_participations = np.zeros((self.num_clients))
+        self.lr_decay_factor = 10
         self.sampler = client_sampling.sampling(self.num_clients, self.num_workers)
         if self.num_classes == 1:
             self.valid_acc = tf.keras.metrics.BinaryAccuracy()
@@ -54,7 +51,6 @@ class framework:
         for i in range (self.num_strongs):
             self.public_datasets.append(self.dataset.public_dataset(i))
 
-
     def train (self):
         # Broadcast the parameters from rank 0 at the first epoch.
         start_epoch = 0
@@ -62,19 +58,11 @@ class framework:
             self.broadcast_model()
 
         for epoch_id in range (start_epoch, self.num_epochs):
-            # LR decay
             if epoch_id in self.decay_epochs:
-                self.participations = np.zeros((self.num_clients))
                 lr_decay = 1 / self.lr_decay_factor
                 for optimizer in self.checkpoint.optimizers:
                     optimizer.lr.assign(optimizer.lr * lr_decay)
-                self.sampler.reset()
-
             active_devices = self.sampler.random()
-            for i in range (len(active_devices)):
-                client_id = active_devices[i]
-                self.participations[client_id] += 1
-                self.total_participations[client_id] += 1
             offset = self.num_local_workers * self.rank
             local_devices = active_devices[offset: offset + self.num_local_workers]
 
@@ -103,13 +91,6 @@ class framework:
             for i in range (self.num_local_workers):
                 local_losses.append(losses[i].result().numpy())
             global_loss = self.comm.allreduce(sum(local_losses), op = MPI.SUM) / self.num_workers
-
-            # Update the local information.
-            aggregated_losses = np.array(self.comm.allgather(local_losses)).flatten()
-            self.sampler.update_loss(aggregated_losses)
-
-            aggregated_norms = np.array(self.comm.allgather(norms)).flatten()
-            self.sampler.update_norm(aggregated_norms)
 
             # Collect the global validation accuracy.
             local_acc = self.evaluate(target_model)
@@ -143,11 +124,6 @@ class framework:
                 offset = num_local_active_strongs * self.rank
                 local_devices = active_devices[offset: offset + num_local_active_strongs]
 
-                # Collect the active private datasets.
-                train_datasets = []
-                for i in range (len(local_devices)):
-                    train_datasets.append(self.train_datasets[local_devices[i]])
-
                 # Collect the active public datasets.
                 public_datasets=[]
                 for i in range(len(local_devices)):
@@ -156,11 +132,10 @@ class framework:
                 losses = []
                 norms = []
                 for outter_round in range (self.outter_rounds):
-                    # Distillation loop.
                     self.aggregator.init_updates(self.checkpoint, target_model)
                     for i in tqdm(range(num_local_active_strongs), ascii=True):
                         self.aggregator.init_model(self.checkpoint, target_model)
-                        lossmean = self.solver.distill_round(epoch_id, self.checkpoint, train_datasets[i], public_datasets[i],target_model)
+                        lossmean = self.solver.distill_round(epoch_id, self.checkpoint, public_datasets[i],target_model)
                         norm = self.aggregator.accumulate_update(self.checkpoint, target_model)
                         losses.append(lossmean)
                         norms.append(norm)

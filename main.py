@@ -19,7 +19,7 @@ if __name__ == '__main__':
     if gpus:
         tf.config.experimental.set_visible_devices(gpus[local_rank], 'GPU')
 
-    # Dataset ( Cifar10 )
+    # Dataset
     num_clients = int(cfg.num_workers / cfg.active_ratio)
     dataset = cifar(batch_size = cfg.batch_size,
                         num_workers = cfg.num_workers,
@@ -28,7 +28,7 @@ if __name__ == '__main__':
                         alpha = cfg.alpha,
                         num_strongs=cfg.num_strongs)
     
-    # Model ( Resnet20 )
+    # Model 
     model = resnet20(cfg.weight_decay, cfg.num_classes, 0.25).build_model()
     model2 = resnet20(cfg.weight_decay, cfg.num_classes, 1).build_model()
     models = [model, model2]

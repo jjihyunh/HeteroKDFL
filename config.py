@@ -1,8 +1,8 @@
 batch_size= 32
 lr= 0.2
 num_classes= 10
-epochs= 400
-decay= {200,300}
+epochs= 100
+decay= {60,80}
 weight_decay= 0.0001
 average_interval = 30
 num_workers = 20

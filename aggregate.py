@@ -11,8 +11,6 @@ class Aggregate:
         self.size = self.comm.Get_size()
         self.num_model_types = len(models)
         self.num_accumulates = np.zeros((self.num_model_types))
-        print ("Number of model types: %3d\n" %(self.num_model_types))
-
         self.t_params = []
         self.nt_params = []
         for model in models:
