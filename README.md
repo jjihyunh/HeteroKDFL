@@ -8,7 +8,7 @@ To install the required packages for this project, you can use the `requirements
 * **Step 2: Clone this repository:**
 
    ```bash
-   git clone https://github.com/jjihyunh/distillation
+   git clone https://github.com/jjihyunh/Distillation
 * **Step 3:  Install the required packages:**
     ```bash
    pip3 install -r requirements.txt
