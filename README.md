@@ -1,7 +1,7 @@
 # On-Device Distillation Framework
 We use CIFAR-10 (Krizhevsky,Hinton et al. 2009) and the dataset is partitioned into two distinct subsets: one for training (private data) and the other for evaluating the model accuracy (public data). 
 Strong clients with high system capabilities have a target model (ResNet-20) and an auxiliary model (a ResNet-20 model with 25% of the channels at each layer), while weak clients with relatively insufficient system resources have only the auxiliary model.
-# Software Requirements ( <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=TensorFlow&logoColor=white"> <img src="https://img.shields.io/badge/numpy-3776AB?style=for-the-badge&logo=numpy&logoColor=white"> )
+## Software Requirements ( <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=TensorFlow&logoColor=white"> <img src="https://img.shields.io/badge/numpy-3776AB?style=for-the-badge&logo=numpy&logoColor=white"> )
 To install the required packages for this project, you can use the `requirements.txt` file.  Follow these steps:
 
 * **Step 1: Make sure you have Python and pip installed on your system.**
