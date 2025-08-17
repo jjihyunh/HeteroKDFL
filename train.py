@@ -31,7 +31,8 @@ class framework:
         self.num_classes = kargs["num_classes"]
         self.num_workers = kargs["num_workers"]
         self.num_clients = kargs["num_clients"]
-        self.num_strongs=kargs["num_strongs"]
+        self.num_strongs = kargs["num_strongs"]
+        self.optimizer = kargs["optimizer"]
         self.num_local_workers = int(self.num_workers / self.size)
         self.outter_rounds =1
         self.lr_decay_factor = 10
@@ -51,6 +52,7 @@ class framework:
         self.train_datasets = []
         for i in range (self.num_clients):
             self.train_datasets.append(self.dataset.train_dataset(i))
+            
         # create all the local public datasets.
         self.public_datasets=[]
         for i in range (self.num_strongs):
@@ -63,10 +65,12 @@ class framework:
             self.broadcast_model()
 
         for epoch_id in range (start_epoch, self.num_epochs):
+            # LR decay
             if epoch_id in self.decay_epochs:
                 lr_decay = 1 / self.lr_decay_factor
                 for optimizer in self.checkpoint.optimizers:
                     optimizer.lr.assign(optimizer.lr * lr_decay)
+                    
             active_devices = self.sampler.random()
             offset = self.num_local_workers * self.rank
             local_devices = active_devices[offset: offset + self.num_local_workers]
@@ -77,98 +81,110 @@ class framework:
                 train_datasets.append(self.train_datasets[local_devices[i]])
 
             # Training loop.
-            target_model = 0
-            losses = []
-            norms = []
-            self.aggregator.init_updates(self.checkpoint, target_model)
-            for i in tqdm(range(self.num_local_workers), ascii=True):
-                self.aggregator.init_model(self.checkpoint, target_model)
-                lossmean = self.solver.round(epoch_id, self.checkpoint, train_datasets[i], target_model)
-                norm = self.aggregator.accumulate_update(self.checkpoint, target_model)
-                losses.append(lossmean)
-                norms.append(norm)
-
-            # Average the model.
-            self.aggregator.average_model(self.checkpoint, target_model)
-
-            # Collect the global training results (loss and accuracy).
-            local_losses = []
-            for i in range (self.num_local_workers):
-                local_losses.append(losses[i].result().numpy())
-            global_loss = self.comm.allreduce(sum(local_losses), op = MPI.SUM) / self.num_workers
-
-            # Collect the global validation accuracy.
-            local_acc = self.evaluate(target_model)
-            global_acc = self.comm.allreduce(local_acc, op = MPI.MAX)
-
-            # Checkpointing
-            if self.do_checkpoint == True and epoch_id < 250:
-                self.checkpoint_manager.save()
-
-            # Logging.
-            if self.rank == 0:
-                print ("Epoch " + str(epoch_id) +
-                    " lr: " + str(self.checkpoint.optimizers[target_model].lr.numpy()) +
-                    " validation acc = " + str(global_acc) +
-                    " training loss = " + str(global_loss))
-                f = open("acc.txt", "a")
-                f.write(str(global_acc) + "\n")
-                f.close()
-
-                f = open("loss.txt", "a")
-                f.write(str(global_loss) + "\n")
-                f.close()
-
-            # Distillation Block
-            if len(self.models) > 1: 
-                # Find the active strong clients.
-                target_model = 1
-                num_active_strongs = self.num_strongs
-                num_local_active_strongs = num_active_strongs // self.size
-                active_devices = np.random.choice(np.arange(self.num_strongs), size = num_active_strongs, replace = False)
-                offset = num_local_active_strongs * self.rank
-                local_devices = active_devices[offset: offset + num_local_active_strongs]
-
-                # Collect the active public datasets.
-                public_datasets=[]
-                for i in range(len(local_devices)):
-                    public_datasets.append(self.public_datasets[local_devices[i]])
-
+            if self.optimizer==0 or self.optimizer==1:
+                target_model = 0
                 losses = []
                 norms = []
-                for outter_round in range (self.outter_rounds):
-                    self.aggregator.init_updates(self.checkpoint, target_model)
-                    for i in tqdm(range(num_local_active_strongs), ascii=True):
-                        self.aggregator.init_model(self.checkpoint, target_model)
-                        lossmean = self.solver.distill_round(epoch_id, self.checkpoint, public_datasets[i],target_model)
-                        norm = self.aggregator.accumulate_update(self.checkpoint, target_model)
-                        losses.append(lossmean)
-                        norms.append(norm)
-                    # Average the model.
-                    self.aggregator.average_model(self.checkpoint, target_model)
+                self.aggregator.init_updates(self.checkpoint, target_model)
+                for i in tqdm(range(self.num_local_workers), ascii=True):
+                    self.aggregator.init_model(self.checkpoint, target_model)
+                    lossmean = self.solver.round(epoch_id, self.checkpoint, train_datasets[i], target_model)
+                    norm = self.aggregator.accumulate_update(self.checkpoint, target_model)
+                    losses.append(lossmean)
+                    norms.append(norm)
+
+                # Average the model.
+                self.aggregator.average_model(self.checkpoint, target_model)
 
                 # Collect the global training results (loss and accuracy).
                 local_losses = []
-                for i in range (num_local_active_strongs):
+                for i in range (self.num_local_workers):
                     local_losses.append(losses[i].result().numpy())
-                global_loss = self.comm.allreduce(sum(local_losses), op = MPI.SUM) / num_active_strongs
+                global_loss = self.comm.allreduce(sum(local_losses), op = MPI.SUM) / self.num_workers
 
+                # Collect the global validation accuracy.
                 local_acc = self.evaluate(target_model)
                 global_acc = self.comm.allreduce(local_acc, op = MPI.MAX)
 
+                # Checkpointing
+                if self.do_checkpoint == True and epoch_id < 250:
+                    self.checkpoint_manager.save()
+
                 # Logging.
                 if self.rank == 0:
-                    print ("Distillation " + str(epoch_id) +
+                    print ("Epoch " + str(epoch_id) +
                         " lr: " + str(self.checkpoint.optimizers[target_model].lr.numpy()) +
                         " validation acc = " + str(global_acc) +
                         " training loss = " + str(global_loss))
-                    f = open("dacc.txt", "a")
+                    f = open("acc.txt", "a")
                     f.write(str(global_acc) + "\n")
                     f.close()
 
-                    f = open("dloss.txt", "a")
+                    f = open("loss.txt", "a")
                     f.write(str(global_loss) + "\n")
                     f.close()
+                    
+            if self.optimizer==0 or self.optimizer==2:
+                # Distillation Block
+                if len(self.models) > 1: 
+                    # Find the active strong clients.
+                    target_model = 1
+                    num_active_strongs = self.num_strongs
+                    num_local_active_strongs = num_active_strongs // self.size
+                    active_devices = np.random.choice(np.arange(self.num_strongs), size = num_active_strongs, replace = False)
+                    offset = num_local_active_strongs * self.rank
+                    local_devices = active_devices[offset: offset + num_local_active_strongs]
+
+                    # Collect the active train datasets.
+                    train_datasets = []
+                    for i in range (len(local_devices)):
+                        train_datasets.append(self.train_datasets[local_devices[i]])
+                        
+                    # Collect the active public datasets.
+                    public_datasets=[]
+                    for i in range(len(local_devices)):
+                        public_datasets.append(self.public_datasets[local_devices[i]])
+
+                    losses = []
+                    norms = []
+                    for outter_round in range (self.outter_rounds):
+                        # Distillation loop.
+                        self.aggregator.init_updates(self.checkpoint, target_model)
+                        for i in tqdm(range(num_local_active_strongs), ascii=True):
+                            self.aggregator.init_model(self.checkpoint, target_model)
+                            if self.optimizer==0:
+                                lossmean = self.solver.distill_round(epoch_id, self.checkpoint, train_datasets[i], public_datasets[i],target_model)
+                            else:
+                                lossmean = self.solver.round(epoch_id, self.checkpoint, train_datasets[i],target_model)
+                            norm = self.aggregator.accumulate_update(self.checkpoint, target_model)
+                            losses.append(lossmean)
+                            norms.append(norm)
+                            
+                        # Average the model.
+                        self.aggregator.average_model(self.checkpoint, target_model)
+
+                    # Collect the global training results (loss and accuracy).
+                    local_losses = []
+                    for i in range (num_local_active_strongs):
+                        local_losses.append(losses[i].result().numpy())
+                    global_loss = self.comm.allreduce(sum(local_losses), op = MPI.SUM) / num_active_strongs
+
+                    local_acc = self.evaluate(target_model)
+                    global_acc = self.comm.allreduce(local_acc, op = MPI.MAX)
+
+                    # Logging.
+                    if self.rank == 0:
+                        print ("Distillation " + str(epoch_id) +
+                            " lr: " + str(self.checkpoint.optimizers[target_model].lr.numpy()) +
+                            " validation acc = " + str(global_acc) +
+                            " training loss = " + str(global_loss))
+                        f = open("dacc.txt", "a")
+                        f.write(str(global_acc) + "\n")
+                        f.close()
+
+                        f = open("dloss.txt", "a")
+                        f.write(str(global_loss) + "\n")
+                        f.close()
 
 
     def evaluate (self, target_model):

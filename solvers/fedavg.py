@@ -40,16 +40,19 @@ class FedAvg:
         lossmean = Mean()
         for i in range(self.average_interval):
             images, labels = dataset.next()
-            loss= self.train_step(checkpoint, images, labels, target_model)
+            loss = self.train_step(checkpoint, images, labels, target_model)
             lossmean(loss)
         return lossmean
 
-    def distill_round (self, round_id, checkpoint, public_dataset, target_model):
+    def distill_round (self, round_id, checkpoint, dataset, public_dataset, target_model):
         lossmean = Mean()
         for i in range(self.average_interval):
-            public_images =public_dataset.next()
-            loss=self.distill_step(checkpoint,public_images,0, target_model,round_id)
+            images, labels = dataset.next()
+            loss = self.distill_step(checkpoint,images, labels,0, target_model,round_id) # labeld dataset distillation
             lossmean(loss)
+        for i in range(self.average_interval):
+            public_images =public_dataset.next()
+            pkl = self.distill_step2(checkpoint,public_images,0, target_model,round_id) # unlabeld dataset distillation
         return lossmean
 
     def train_step (self, checkpoint, data, label, target_model):
@@ -62,7 +65,18 @@ class FedAvg:
         checkpoint.optimizers[target_model].apply_gradients(zip(grads, checkpoint.models[target_model].trainable_variables))
         return loss
 
-    def distill_step (self, checkpoint, data, teacher, student,round_id):
+    def distill_step (self, checkpoint, data, label,teacher, student,round_id):
+        with tf.GradientTape() as tape:
+            student_logit = checkpoint.models[student](data, training = True)
+            student_ce = self.cross_entropy_batch(label, student_logit)
+            student_loss = student_ce
+            student_regularization_losses = checkpoint.models[student].losses
+            student_total_loss = tf.add_n(student_regularization_losses + [student_loss])
+        grads = tape.gradient(student_total_loss, checkpoint.models[student].trainable_variables)
+        checkpoint.optimizers[student].apply_gradients(zip(grads, checkpoint.models[student].trainable_variables))
+        return student_loss
+
+    def distill_step2 (self, checkpoint, data, teacher, student,round_id):
         with tf.GradientTape() as tape:
             teacher_public_logit = tf.keras.activations.softmax(checkpoint.models[teacher](data, training = True) / self.temperature)
             student_public_logit=tf.keras.activations.softmax(checkpoint.models[student](data, training = True) / self.temperature)

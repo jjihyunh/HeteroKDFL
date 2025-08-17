@@ -12,6 +12,7 @@ from solvers.fedavg import FedAvg
 from aggregate import Aggregate
 from model import resnet20
 from feeders.feeder_cifar import cifar
+
 if __name__ == '__main__':
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
@@ -23,7 +24,7 @@ if __name__ == '__main__':
         tf.config.experimental.set_memory_growth(gpu, True)
     if gpus:
         tf.config.experimental.set_visible_devices(gpus[local_rank], 'GPU')
-
+        
     # Dataset
     num_clients = int(cfg.num_workers / cfg.active_ratio)
     dataset = cifar(batch_size = cfg.batch_size,
@@ -33,6 +34,15 @@ if __name__ == '__main__':
                         alpha = cfg.alpha,
                         num_strongs=cfg.num_strongs)
     
+    if rank == 0:
+        print ("---------------------------------------------------")
+        print ("dataset: " + "cifar10")
+        print ("number of workers: " + str(cfg.num_workers))
+        print ("average interval: " + str(cfg.average_interval))
+        print ("batch_size: " + str(cfg.batch_size))
+        print ("training epochs: " + str(cfg.epochs))
+        print ("---------------------------------------------------")
+        
     # Model 
     model = resnet20(cfg.weight_decay, cfg.num_classes, 0.25).build_model()
     model2 = resnet20(cfg.weight_decay, cfg.num_classes, 1).build_model()
@@ -58,15 +68,7 @@ if __name__ == '__main__':
                         num_clients = num_clients,
                         average_interval = cfg.average_interval,
                         do_checkpoint = cfg.checkpoint,
-                        num_strongs= cfg.num_strongs)
+                        num_strongs= cfg.num_strongs,
+                        optimizer = cfg.optimizer)
 
     trainer.train()
-    
-    if rank == 0:
-        print ("---------------------------------------------------")
-        print ("dataset: " + "cifar10")
-        print ("number of workers: " + str(cfg.num_workers))
-        print ("average interval: " + str(cfg.average_interval))
-        print ("batch_size: " + str(cfg.batch_size))
-        print ("training epochs: " + str(cfg.epochs))
-        print ("---------------------------------------------------")
