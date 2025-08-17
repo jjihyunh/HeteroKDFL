@@ -1,4 +1,14 @@
-# On-Device Distillation Framework
+# Enabling Weak Client Participation via On-device Knowledge Distillation in Heterogenous Federated Learning
+This is an official implementation of the following paper:
+> Jihyun Lim, Junhyuk Jo, Tuo Zhang, Salman Avestimehr, Sunwoo Lee.<br>
+ **Enabling Weak Client Participation via On-device Knowledge Distillation in Heterogenous Federated Learning**  
+_European Conference on Artificial Intelligence (ECAI) 2025_.
+>
+
+[Paper](https://arxiv.org/abs/2503.11151) <br>
+
+![](schematic.png)
+
 We use CIFAR-10 (Krizhevsky,Hinton et al. 2009) and the dataset is partitioned into two distinct subsets: one for training (private data) and the other for evaluating the model accuracy (public data). 
 Strong clients with high system capabilities have a target model (ResNet-20) and an auxiliary model (a ResNet-20 model with 25% of the channels at each layer), while weak clients with relatively insufficient system resources have only the auxiliary model.
 ## Software Requirements ( <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=TensorFlow&logoColor=white"> <img src="https://img.shields.io/badge/numpy-3776AB?style=for-the-badge&logo=numpy&logoColor=white"> )
