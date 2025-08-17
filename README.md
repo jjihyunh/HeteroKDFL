@@ -5,10 +5,13 @@ This is an official implementation of the following paper:
 _European Conference on Artificial Intelligence (ECAI) 2025_.
 >
 
-[Paper](https://arxiv.org/abs/2503.11151) <br>
+The paper link is here ➔  [Paper](https://arxiv.org/abs/2503.11151) <br>
+<br>
+<img src="schematic.png" width="90%">
+<br><br>
+**Abstract**: Online Knowledge Distillation (KD) is recently highlighted to train large models in Federated Learning (FL) environments. Many existing studies adopt the logit ensemble method to perform KD on the server side. However, they often assume that unlabeled data collected at the edge is centralized on the server. Moreover, the logit ensemble method personalizes local models, which can degrade the quality of soft targets, especially when data is highly non-IID. To address these critical limitations, we propose a novel on-device KD-based heterogeneous FL method. Our approach leverages a small auxiliary model to learn from labeled local data. Subsequently, a subset of clients with strong system resources transfers knowledge to a large model through on-device KD using their unlabeled data. Our extensive experiments demonstrate that our on-device KD-based heterogeneous FL method effectively utilizes the system resources of all edge devices as well as the unlabeled data, resulting in higher accuracy compared to SOTA KD-based FL methods.
 
-![](schematic.png)
-
+## Framework Overview
 We use CIFAR-10 (Krizhevsky,Hinton et al. 2009) and the dataset is partitioned into two distinct subsets: one for training (private data) and the other for evaluating the model accuracy (public data). 
 Strong clients with high system capabilities have a target model (ResNet-20) and an auxiliary model (a ResNet-20 model with 25% of the channels at each layer), while weak clients with relatively insufficient system resources have only the auxiliary model.
 ## Software Requirements ( <img src="https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=TensorFlow&logoColor=white"> <img src="https://img.shields.io/badge/numpy-3776AB?style=for-the-badge&logo=numpy&logoColor=white"> )
