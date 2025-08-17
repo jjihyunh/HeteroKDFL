@@ -47,3 +47,4 @@ This program evaluates the trained model after every epoch and then outputs the 
  5. `./checkpoint`: The checkpoint files generated after every epoch. This directory is created only when `checkpoint` is set to 1 in `config.py`.
 ## Questions / Comments
  * Jihyun Lim (wlguslim@inha.edu)
+ * Sunwoo Lee (sunwool@inha.ac.kr)
