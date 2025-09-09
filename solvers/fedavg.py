@@ -21,7 +21,8 @@ class FedAvg:
         self.num_workers = num_workers
         self.average_interval = average_interval
         self.temperature =3
-        self.ld =1
+        self.l_max=0.5
+        self.ap=300
         self.local_optimizers = []
         for i in range (num_models):
             self.local_optimizers.append(SGD(momentum = 0.9))
@@ -77,11 +78,16 @@ class FedAvg:
         return student_loss
 
     def distill_step2 (self, checkpoint, data, teacher, student,round_id):
+        w=0
+        if round_id < self.ap:
+            w=self.l_max * np.exp(-5 * (1 - round_id / self.ap) ** 2)
+        else:
+            w=self.l_max
         with tf.GradientTape() as tape:
             teacher_public_logit = tf.keras.activations.softmax(checkpoint.models[teacher](data, training = True) / self.temperature)
             student_public_logit=tf.keras.activations.softmax(checkpoint.models[student](data, training = True) / self.temperature)
             student_public_kd=tf.reduce_mean(tf.keras.losses.KLDivergence()(teacher_public_logit, student_public_logit) * self.temperature**2)
-            student_loss= self.ld*student_public_kd
+            student_loss= w*student_public_kd
             student_regularization_losses = checkpoint.models[student].losses
             student_total_loss = tf.add_n(student_regularization_losses + [student_loss])
         grads = tape.gradient(student_total_loss, checkpoint.models[student].trainable_variables)
